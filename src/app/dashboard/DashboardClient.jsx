@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import API from '@/lib/api';
-import useAuthStore from '@/stores/authStore';
 import AnalyticsChart from '@/components/AnalyticsChart';
 import { useDebounce } from '@/hooks/useDebounce';
 import VideoThumbnail from '@/components/VideoThumbnail';
@@ -18,31 +18,37 @@ const DashboardClient = () => {
     const searchParams = useSearchParams();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || "");
     const [editingVideo, setEditingVideo] = useState(null);
-    const { isAuthenticated } = useAuthStore();
+
+    const { data: session, status } = useSession();
+    const isAuthenticated = status === "authenticated";
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (status === "unauthenticated") {
             router.push('/login');
             return;
         }
-        const fetchDashboardData = async () => {
-            try {
-                setLoading(true);
-                const params = {};
-                if (debouncedSearchTerm) {
-                    params.q = debouncedSearchTerm;
+
+        if (isAuthenticated) {
+            const fetchDashboardData = async () => {
+                try {
+                    setLoading(true);
+                    const params = {};
+                    if (debouncedSearchTerm) {
+                        params.q = debouncedSearchTerm;
+                    }
+                    const response = await API.get('/creator/dashboard', { params });
+                    setVideos(response.data);
+                } catch (error) {
+                    console.error("Failed to fetch dashboard data:", error);
+                    toast.error("Could not load dashboard data.");
+                } finally {
+                    setLoading(false);
                 }
-                const response = await API.get('/creator/dashboard', { params });
-                setVideos(response.data);
-            } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchDashboardData();
-    }, [isAuthenticated, router, debouncedSearchTerm]);
+            };
+            fetchDashboardData();
+        }
+    }, [status, isAuthenticated, router, debouncedSearchTerm]);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -81,7 +87,7 @@ const DashboardClient = () => {
         }
     };
 
-    if (loading) {
+    if (status === "loading" || loading) {
         return (
              <main className="container mx-auto px-6 py-8 animate-pulse">
                 <div className="h-10 bg-gray-300 rounded w-1/3 mb-6"></div>

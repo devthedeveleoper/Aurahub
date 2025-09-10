@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import API from '@/lib/api';
-import useAuthStore from '@/stores/authStore';
+import { useSession } from 'next-auth/react';
 import { FaBell } from 'react-icons/fa';
 
 const NotificationsPanel = () => {
-    const { isAuthenticated } = useAuthStore();
+    const { data: session, status } = useSession();
+    const isAuthenticated = status === "authenticated";
+
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);

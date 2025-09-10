@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Playlist from '@/models/Playlist';
-import { verifyJwt } from '@/lib/authUtils';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+// GET: Fetch all of the user's playlists
 export async function GET(request) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const playlists = await Playlist.find({ owner: user.id })
+        const playlists = await Playlist.find({ owner: session.user.id })
             .sort({ updatedAt: -1 });
 
         return NextResponse.json(playlists);
@@ -21,11 +23,12 @@ export async function GET(request) {
     }
 }
 
+// POST: Create a new playlist
 export async function POST(request) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
@@ -36,7 +39,7 @@ export async function POST(request) {
 
         const newPlaylist = new Playlist({
             title,
-            owner: user.id,
+            owner: session.user.id,
             videos: [],
             isPublic: isPublic,
         });
@@ -48,11 +51,12 @@ export async function POST(request) {
     }
 }
 
+// PUT: Update a playlist (e.g., title, privacy status)
 export async function PUT(request) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
@@ -62,7 +66,7 @@ export async function PUT(request) {
         if (!playlist) {
             return NextResponse.json({ message: 'Playlist not found' }, { status: 404 });
         }
-        if (playlist.owner.toString() !== user.id) {
+        if (playlist.owner.toString() !== session.user.id) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
         }
 

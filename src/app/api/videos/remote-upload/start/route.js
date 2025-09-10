@@ -1,13 +1,15 @@
-import { NextResponse } from "next/server";
-import axios from "axios";
-import { verifyJwt } from "@/lib/authUtils";
+import { NextResponse } from 'next/server';
+import axios from 'axios';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const AURA_API_BASE_URL = "https://api.aurahub.fun";
 const UPLOAD_FOLDER_ID = process.env.UPLOAD_FOLDER_ID;
 
 export async function POST(request) {
-  const user = verifyJwt(request);
-  if (!user) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 

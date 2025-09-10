@@ -3,8 +3,9 @@ import dbConnect from '@/lib/dbConnect';
 import Comment from '@/models/Comment';
 import Video from '@/models/Video';
 import Notification from '@/models/Notification';
-import { verifyJwt } from '@/lib/authUtils';
 import mongoose from 'mongoose';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(request, { params }) {
     await dbConnect();
@@ -15,7 +16,7 @@ export async function GET(request, { params }) {
         }
 
         const comments = await Comment.find({ video: id, parentComment: null })
-            .populate('author', 'username')
+            .populate('author', 'username avatar')
             .sort({ createdAt: -1 });
             
         return NextResponse.json(comments);
@@ -33,18 +34,18 @@ export async function POST(request, { params }) {
             return NextResponse.json({ message: 'Invalid video ID format.' }, { status: 400 });
         }
         
-        const user = verifyJwt(request);
-        if (!user) {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
+        const user = session.user;
 
         const video = await Video.findById(id);
         if (!video) {
             return NextResponse.json({ message: 'Video not found' }, { status: 404 });
         }
 
-        const body = await request.json();
-        const { text, parentCommentId } = body; 
+        const { text, parentCommentId } = await request.json(); 
 
         if (!text || text.trim() === '') {
             return NextResponse.json({ message: 'Comment text is required.' }, { status: 400 });

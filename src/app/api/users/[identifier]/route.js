@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import Video from '@/models/Video';
-import { verifyJwt } from '@/lib/authUtils';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(request, { params }) {
     await dbConnect();
@@ -17,9 +18,10 @@ export async function GET(request, { params }) {
 
         const videos = await Video.find({ uploader: user._id })
             .sort({ createdAt: -1 })
-            .populate('uploader', 'username');
+            .populate('uploader', 'username avatar');
 
-        const viewingUser = verifyJwt(request);
+        const session = await getServerSession(authOptions);
+        const viewingUser = session?.user;
         
         const isSubscribed = viewingUser && user.subscribers ? user.subscribers.includes(viewingUser.id) : false;
 

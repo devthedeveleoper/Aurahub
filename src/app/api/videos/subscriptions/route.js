@@ -2,25 +2,26 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import Video from '@/models/Video';
-import { verifyJwt } from '@/lib/authUtils';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(request) {
     await dbConnect();
     try {
-        const userPayload = verifyJwt(request);
-        if (!userPayload) {
+        const session = await getServerSession(authOptions);
+
+        if (!session || !session.user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const user = await User.findById(userPayload.id);
+        const user = await User.findById(session.user.id);
         if (!user || !user.subscriptions) {
-            return NextResponse.json({ videos: [] });
+            return NextResponse.json([]);
         }
         
-        // Find all videos where the uploader is in the user's subscriptions list
         const videos = await Video.find({ uploader: { $in: user.subscriptions } })
             .sort({ createdAt: -1 })
-            .populate('uploader', 'username');
+            .populate('uploader', 'username avatar');
 
         return NextResponse.json(videos);
 

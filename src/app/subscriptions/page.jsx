@@ -2,17 +2,25 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import API from '@/lib/api';
-import useAuthStore from '@/stores/authStore';
 import VideoCard from '@/components/VideoCard';
 import VideoCardSkeleton from '@/components/VideoCardSkeleton';
 
 const SubscriptionsPage = () => {
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
-    const { isAuthenticated } = useAuthStore();
+    const { data: session, status } = useSession();
+    const isAuthenticated = status === "authenticated";
+    const router = useRouter();
 
     useEffect(() => {
+        if (status === "unauthenticated") {
+            router.push('/login');
+            return;
+        }
+
         if (isAuthenticated) {
             const fetchFeed = async () => {
                 try {
@@ -27,7 +35,11 @@ const SubscriptionsPage = () => {
             };
             fetchFeed();
         }
-    }, [isAuthenticated]);
+    }, [status, isAuthenticated, router]);
+
+    if (status === "loading") {
+        return <div className="text-center p-10">Loading...</div>;
+    }
 
     if (!isAuthenticated) {
         return (

@@ -1,46 +1,33 @@
-import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
-import User from "@/models/User";
-import jwt from "jsonwebtoken";
-
-const sanitizeUser = (user) => {
-  const { _id, username, email } = user;
-  return { id: _id, username, email };
-};
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/dbConnect';
+import User from '@/models/User';
 
 export async function POST(request) {
-  await dbConnect();
+    await dbConnect();
+    try {
+        const { username, email, password, avatar } = await request.json();
 
-  try {
-    const body = await request.json();
-    const { username, email, password } = body;
+        if (!username || !email || !password) {
+            return NextResponse.json({ message: "All fields are required." }, { status: 400 });
+        }
 
-    let user = await User.findOne({ email });
-    if (user) {
-      return NextResponse.json(
-        { message: "User already exists" },
-        { status: 400 }
-      );
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return NextResponse.json({ message: "User with this email already exists." }, { status: 409 });
+        }
+
+        const newUser = new User({
+            username,
+            email,
+            password,
+            avatar,
+        });
+
+        await newUser.save();
+        return NextResponse.json({ message: "User created successfully." }, { status: 201 });
+
+    } catch (error) {
+        console.error("Registration error:", error);
+        return NextResponse.json({ message: 'Server error' }, { status: 500 });
     }
-
-    user = new User({ username, email, password });
-    await user.save();
-
-    const payload = { id: user.id, username: user.username };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    return NextResponse.json(
-      {
-        message: "User registered successfully",
-        token: `Bearer ${token}`,
-        user: sanitizeUser(user),
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Registration failed:", error);
-    return NextResponse.json({ message: "Server error" }, { status: 500 });
-  }
 }

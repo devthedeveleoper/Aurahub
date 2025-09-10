@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
-import mongoose from "mongoose";
-import dbConnect from "@/lib/dbConnect";
-import Video from "@/models/Video";
-import Comment from "@/models/Comment";
-import { buildVideoAggregation } from "@/lib/videoUtils";
-import { verifyJwt } from "@/lib/authUtils";
+import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
+import dbConnect from '@/lib/dbConnect';
+import Video from '@/models/Video';
+import Comment from '@/models/Comment';
+import { buildVideoAggregation } from '@/lib/videoUtils';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import axios from 'axios';
 
 const AURA_API_BASE_URL = "https://api.aurahub.fun";
@@ -14,11 +15,9 @@ export async function GET(request, { params }) {
   try {
     const { id } = await params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { message: "Invalid video ID format." },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Invalid video ID format." }, { status: 400 });
     }
+
     const videoId = new mongoose.Types.ObjectId(id);
     const aggregation = buildVideoAggregation({ _id: videoId });
     const results = await Video.aggregate(aggregation);
@@ -28,14 +27,16 @@ export async function GET(request, { params }) {
     }
 
     const videoObject = results[0];
-    const user = verifyJwt(request);
+    
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
+
     if (user && videoObject.likes) {
-      videoObject.isLiked = videoObject.likes
-        .map((likeId) => likeId.toString())
-        .includes(user.id);
+      videoObject.isLiked = videoObject.likes.map((likeId) => likeId.toString()).includes(user.id);
     } else {
       videoObject.isLiked = false;
     }
+    
     return NextResponse.json(videoObject);
   } catch (error) {
     console.error("Error fetching video by ID:", error);
@@ -46,20 +47,21 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   await dbConnect();
   try {
-    const user = verifyJwt(request);
-    if (!user)
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
 
-    const { id } = await params;
+    if (!user) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = params;
     const video = await Video.findById(id);
-    if (!video)
+    if (!video) {
       return NextResponse.json({ message: "Video not found" }, { status: 404 });
+    }
 
     if (video.uploader.toString() !== user.id) {
-      return NextResponse.json(
-        { message: "User not authorized to edit this video" },
-        { status: 403 }
-      );
+      return NextResponse.json({ message: "User not authorized to edit this video" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -70,21 +72,24 @@ export async function PUT(request, { params }) {
     return NextResponse.json(updatedVideo);
   } catch (error) {
     console.error("Error updating video:", error);
-    return NextResponse.json(
-      { message: "Server error while updating video" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Server error while updating video" }, { status: 500 });
   }
 }
 
 export async function DELETE(request, { params }) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        const session = await getServerSession(authOptions);
+        const user = session?.user;
+
+        if (!user) {
+          return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        }
 
         const video = await Video.findById(params.id);
-        if (!video) return NextResponse.json({ message: 'Video not found' }, { status: 404 });
+        if (!video) {
+          return NextResponse.json({ message: 'Video not found' }, { status: 404 });
+        }
         
         if (video.uploader.toString() !== user.id) {
             return NextResponse.json({ message: 'User not authorized to delete this video' }, { status: 403 });
@@ -96,8 +101,8 @@ export async function DELETE(request, { params }) {
         } catch (auraError) {
             console.error(`Failed to delete file ${video.fileId} from AuraHub:`, auraError.message);
         }
-        await Video.deleteOne({ _id: params.id });
 
+        await Video.deleteOne({ _id: params.id });
         await Comment.deleteMany({ video: params.id });
 
         return NextResponse.json({ message: 'Video deleted successfully' });

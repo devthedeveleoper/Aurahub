@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import API from '@/lib/api';
-import useAuthStore from '@/stores/authStore';
 import { toast } from 'react-toastify';
 import VideoCard from '@/components/VideoCard';
 import VideoCardSkeleton from '@/components/VideoCardSkeleton';
@@ -11,7 +12,9 @@ import VideoCardSkeleton from '@/components/VideoCardSkeleton';
 const ProfilePage = () => {
     const params = useParams();
     const username = params.username;
-    const { user: currentUser, isAuthenticated } = useAuthStore();
+    const { data: session, status } = useSession();
+    const isAuthenticated = status === "authenticated";
+    const currentUser = session?.user;
     
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -60,11 +63,7 @@ const ProfilePage = () => {
         }
     };
 
-    if (error) {
-        return <div className="text-center p-10 text-red-500 font-semibold">{error}</div>;
-    }
-
-    if (loading || !profile) {
+    if (status === 'loading' || loading) {
         return (
              <main className="container mx-auto px-6 py-8 animate-pulse">
                 <div className="mb-8">
@@ -78,6 +77,10 @@ const ProfilePage = () => {
             </main>
         );
     }
+
+    if (error || !profile) {
+        return <div className="text-center p-10 text-red-500 font-semibold">{error || "User not found."}</div>;
+    }
     
     const isOwnProfile = currentUser?.id === profile.user.id;
 
@@ -90,7 +93,7 @@ const ProfilePage = () => {
                         {profile.user.subscriberCount} subscribers • {profile.videos.length} videos • Joined on {new Date(profile.user.joined).toLocaleDateString()}
                     </p>
                 </div>
-                {!isOwnProfile && isAuthenticated && (
+                {isAuthenticated && !isOwnProfile && (
                     <button
                         onClick={handleSubscribe}
                         className={`px-6 py-2 font-semibold rounded-full transition-colors ${

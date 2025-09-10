@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import API from '@/lib/api';
-import useAuthStore from '@/stores/authStore';
 import { toast } from 'react-toastify';
 import EditPlaylistModal from '@/components/EditPlaylistModal';
 import { FaGlobeAsia, FaLock, FaTrash } from 'react-icons/fa';
@@ -13,15 +13,15 @@ const MyPlaylistsPage = () => {
     const [playlists, setPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingPlaylist, setEditingPlaylist] = useState(null);
-    const { isAuthenticated, user } = useAuthStore();
+    const { data: session, status } = useSession();
     const router = useRouter();
 
     useEffect(() => {
-        if (!isAuthenticated && typeof window !== 'undefined' && !localStorage.getItem('token')) {
+        if (status === 'unauthenticated') {
             router.push('/login');
             return;
         }
-        if (isAuthenticated) {
+        if (status === 'authenticated') {
             const fetchPlaylists = async () => {
                 try {
                     setLoading(true);
@@ -35,7 +35,7 @@ const MyPlaylistsPage = () => {
             };
             fetchPlaylists();
         }
-    }, [isAuthenticated, user, router]);
+    }, [status, router]);
 
     const handleCreatePlaylist = async (e) => {
         e.preventDefault();
@@ -93,7 +93,7 @@ const MyPlaylistsPage = () => {
         });
     };
 
-    if (loading || (!isAuthenticated && typeof window !== 'undefined' && localStorage.getItem('token'))) {
+    if (status === 'loading' || loading) {
         return (
             <main className="container mx-auto px-6 py-8 animate-pulse">
                 <div className="h-10 bg-gray-300 rounded w-1/3 mb-6"></div>

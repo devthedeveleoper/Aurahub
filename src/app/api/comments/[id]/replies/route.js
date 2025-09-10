@@ -8,7 +8,7 @@ export async function GET(request, { params }) {
         const { id } = await params;
 
         const replies = await Comment.find({ parentComment: id })
-            .populate('author', 'username')
+            .populate('author', 'username avatar')
             .sort({ createdAt: 'asc' });
 
         return NextResponse.json(replies);

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import API from "@/lib/api";
-import useAuthStore from "@/stores/authStore";
 import { useThrottle } from "@/hooks/useThrottle";
 import { toast } from 'react-toastify';
 import { FcLike } from "react-icons/fc";
@@ -19,7 +19,9 @@ const VideoPlayerPage = () => {
   const params = useParams();
   const id = params.id;
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
+  const user = session?.user;
   
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,14 +62,13 @@ const VideoPlayerPage = () => {
         setSuggestionPage(1);
         setSuggestedVideos([]);
 
-        const [videoRes, commentsRes] = await Promise.all([
-          API.get(`/videos/${id}`),
-          API.get(`/videos/${id}/comments`)
-        ]);
-        
+        const videoRes = await API.get(`/videos/${id}`);
         setVideo(videoRes.data);
-        setComments(commentsRes.data);
 
+        API.get(`/videos/${id}/comments`)
+            .then(res => setComments(res.data))
+            .catch(err => console.error("Failed to fetch comments:", err));
+        
         fetchSuggestions(1);
         
         API.post(`/videos/${id}/view`).catch(err => console.error("Failed to count view:", err));
@@ -156,7 +157,7 @@ const VideoPlayerPage = () => {
       setComments(prev => prev.map(c => c._id === updatedComment._id ? updatedComment : c));
   };
 
-  if (loading) {
+  if (loading || status === 'loading') {
     return (
         <div className="bg-gray-50 min-h-screen">
             <VideoPlayerSkeleton />
@@ -231,6 +232,18 @@ const VideoPlayerPage = () => {
                 )}
               </div>
               <p className="mt-2 text-gray-700 whitespace-pre-wrap">{video.description}</p>
+                 {video.tags && video.tags.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {video.tags.map((tag) => (
+                    <span 
+                      key={tag} 
+                      className="px-3 py-1 bg-gray-200 text-gray-800 text-xs font-semibold rounded-full"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

@@ -45,6 +45,7 @@ export const buildVideoAggregation = (
         likes: 1,
         "uploader.username": "$uploaderInfo.username",
         "uploader._id": "$uploaderInfo._id",
+        'uploader.avatar': "$uploaderInfo.avatar",
       },
     },
   ];

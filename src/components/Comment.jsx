@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import API from '@/lib/api';
-import useAuthStore from '@/stores/authStore';
+import { useSession } from 'next-auth/react';
 import { toast } from 'react-toastify';
+import Image from 'next/image';
 
 const Comment = ({ comment, videoId, onCommentDeleted, onCommentUpdated, onReplySubmitted }) => {
     const [showReplyForm, setShowReplyForm] = useState(false);
@@ -14,7 +15,9 @@ const Comment = ({ comment, videoId, onCommentDeleted, onCommentUpdated, onReply
     const [replies, setReplies] = useState([]);
     const [loadingReplies, setLoadingReplies] = useState(false);
     
-    const { isAuthenticated, user: currentUser } = useAuthStore();
+    const { data: session, status } = useSession();
+    const isAuthenticated = status === "authenticated";
+    const currentUser = session?.user;
     const isOwner = currentUser?.id === comment.author._id;
 
     const handleLoadReplies = async () => {
@@ -77,8 +80,22 @@ const Comment = ({ comment, videoId, onCommentDeleted, onCommentUpdated, onReply
 
     return (
         <div className="flex space-x-3">
-            <div className="flex-shrink-0 w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center font-bold text-gray-600">
-                {comment.author?.username.charAt(0).toUpperCase()}
+            <div className="flex-shrink-0">
+                <Link href={`/profile/${comment.author.username}`}>
+                    {comment.author?.avatar ? (
+                        <Image
+                            src={comment.author.avatar}
+                            alt={comment.author.username}
+                            width={40}
+                            height={40}
+                            className="rounded-full"
+                        />
+                    ) : (
+                        <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center font-bold text-gray-600">
+                             {comment.author.username.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                </Link>
             </div>
             <div className="flex-1">
                 <div className="flex justify-between items-center">
@@ -140,7 +157,7 @@ const Comment = ({ comment, videoId, onCommentDeleted, onCommentUpdated, onReply
                             key={reply._id} 
                             comment={reply} 
                             videoId={videoId}
-                            onCommentDeleted={handleDelete}
+                            onCommentDeleted={() => setReplies(prev => prev.filter(r => r._id !== reply._id))}
                             onCommentUpdated={(updatedReply) => {
                                 setReplies(prevReplies => prevReplies.map(r => r._id === updatedReply._id ? updatedReply : r));
                             }}

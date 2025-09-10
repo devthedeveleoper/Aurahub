@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Playlist from '@/models/Playlist';
-import { verifyJwt } from '@/lib/authUtils';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(request) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        }
 
-        const playlists = await Playlist.find({ owner: user.id }).select('title videos');
+        const playlists = await Playlist.find({ owner: session.user.id }).select('title videos');
         return NextResponse.json(playlists);
     } catch (error) {
+        console.error("Error fetching playlists:", error);
         return NextResponse.json({ message: 'Server error' }, { status: 500 });
     }
 }
@@ -19,16 +23,20 @@ export async function GET(request) {
 export async function POST(request) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        }
 
         const { title, description, isPublic } = await request.json();
-        if (!title) return NextResponse.json({ message: 'Title is required' }, { status: 400 });
+        if (!title) {
+            return NextResponse.json({ message: 'Title is required' }, { status: 400 });
+        }
 
         const newPlaylist = new Playlist({
             title,
             description,
-            owner: user.id,
+            owner: session.user.id,
             isPublic,
         });
         await newPlaylist.save();
@@ -42,14 +50,20 @@ export async function POST(request) {
 export async function PUT(request) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        }
 
         const { playlistId, videoId, title, description, newVideoOrder } = await request.json();
         const playlist = await Playlist.findById(playlistId);
 
-        if (!playlist) return NextResponse.json({ message: 'Playlist not found' }, { status: 404 });
-        if (playlist.owner.toString() !== user.id) return NextResponse.json({ message: 'Unauthorized' }, { status: 403 });
+        if (!playlist) {
+            return NextResponse.json({ message: 'Playlist not found' }, { status: 404 });
+        }
+        if (playlist.owner.toString() !== session.user.id) {
+            return NextResponse.json({ message: 'User not authorized to edit this playlist' }, { status: 403 });
+        }
 
         if (videoId) {
             const videoIndex = playlist.videos.indexOf(videoId);

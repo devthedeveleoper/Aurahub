@@ -1,19 +1,20 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
-import { verifyJwt } from '@/lib/authUtils';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(request, { params }) {
     await dbConnect();
     try {
-        const currentUser = verifyJwt(request);
-        if (!currentUser) {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const {identifier} = await params;
+        const { identifier } = await params;
         const targetUserId = identifier;
-        const currentUserId = currentUser.id;
+        const currentUserId = session.user.id;
 
         if (targetUserId === currentUserId) {
             return NextResponse.json({ message: 'You cannot subscribe to yourself' }, { status: 400 });
@@ -27,7 +28,6 @@ export async function POST(request, { params }) {
         }
 
         if (!user.subscriptions) user.subscriptions = [];
-        if (!targetUser.subscribers) targetUser.subscribers = [];
         
         const isSubscribed = user.subscriptions.includes(targetUserId);
 

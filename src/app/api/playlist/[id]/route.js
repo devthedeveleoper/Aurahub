@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Playlist from '@/models/Playlist';
 import mongoose from 'mongoose';
-import { verifyJwt } from '@/lib/authUtils';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(request, { params }) {
     await dbConnect();
@@ -25,8 +26,8 @@ export async function GET(request, { params }) {
             return NextResponse.json({ message: 'Playlist not found' }, { status: 404 });
         }
 
-        const user = verifyJwt(request);
-        if (!playlist.isPublic && playlist.owner.toString() !== user?.id) {
+        const session = await getServerSession(authOptions);
+        if (!playlist.isPublic && playlist.owner.toString() !== session?.user?.id) {
             return NextResponse.json({ message: 'This playlist is private' }, { status: 403 });
         }
         
@@ -40,8 +41,8 @@ export async function GET(request, { params }) {
 export async function DELETE(request, { params }) {
     await dbConnect();
     try {
-        const user = verifyJwt(request);
-        if (!user) {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
@@ -50,7 +51,7 @@ export async function DELETE(request, { params }) {
             return NextResponse.json({ message: 'Playlist not found' }, { status: 404 });
         }
         
-        if (playlist.owner.toString() !== user.id) {
+        if (playlist.owner.toString() !== session.user.id) {
             return NextResponse.json({ message: 'User not authorized to delete this playlist' }, { status: 403 });
         }
 
