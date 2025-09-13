@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
             return NextResponse.json({ message: 'User not found' }, { status: 404 });
         }
 
-        const videos = await Video.find({ uploader: user._id })
+        const videos = await Video.find({ uploader: user._id, visibility: 'public' })
             .sort({ createdAt: -1 })
             .populate('uploader', 'username avatar');
 
