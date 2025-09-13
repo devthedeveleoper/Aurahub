@@ -17,8 +17,8 @@ export async function generateMetadata({ params }) {
     return {
       title: `${video.title} - Aurahub`,
       description: video.description,
-      keywords: video.tags.join(', '), // Use tags as keywords
-      openGraph: { // For social media sharing (Facebook, etc.)
+      keywords: video.tags.join(', '),
+      openGraph: {
         title: video.title,
         description: video.description,
         images: [

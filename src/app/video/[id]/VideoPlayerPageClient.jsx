@@ -74,7 +74,7 @@ const VideoPlayerPage = () => {
         API.post(`/videos/${id}/view`).catch(err => console.error("Failed to count view:", err));
 
       } catch (err) {
-        setError("Could not load video data. It may have been removed or the link is incorrect.");
+        setError("Could not load video data. It may have been removed or the link is incorrect or the video is private.");
         console.error("Error fetching main video data:", err);
       } finally {
         setLoading(false);

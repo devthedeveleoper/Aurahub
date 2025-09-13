@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Image from "next/image";
 
-const FALLBACK_IMAGE_URL = "https://i.ibb.co/hRHpLpv3/luffy-crying.gif";
+const FALLBACK_IMAGE_URL = "https://iili.io/Ku93A2n.png";
 
 const VideoThumbnail = ({ fileId, customThumbnailUrl, altText }) => {
   const [imageUrl, setImageUrl] = useState(
