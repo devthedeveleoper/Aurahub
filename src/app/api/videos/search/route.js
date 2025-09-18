@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Video from '@/models/Video';
 import { buildVideoAggregation } from '@/lib/videoUtils';
+import redis from '@/lib/redis';
 
 export async function GET(request) {
     await dbConnect();
@@ -13,6 +14,18 @@ export async function GET(request) {
         if (!searchQuery) {
             return NextResponse.json([]);
         }
+
+        const cacheKey = `search:${searchQuery}:${sortOption}`;
+
+        const cachedResults = await redis.get(cacheKey);
+        if (cachedResults) {
+            console.log(`CACHE HIT for key: ${cacheKey}`);
+            return NextResponse.json(cachedResults);
+        }
+
+        console.log(`CACHE MISS for key: ${cacheKey}`);
+
+        await dbConnect();
 
         const searchFilter = { 
             $text: { $search: searchQuery },
@@ -41,6 +54,9 @@ export async function GET(request) {
         }
         
         const videos = await Video.aggregate(aggregation);
+
+        await redis.set(cacheKey, JSON.stringify(videos), { ex: 600 });
+
         return NextResponse.json(videos);
 
     } catch (error) {

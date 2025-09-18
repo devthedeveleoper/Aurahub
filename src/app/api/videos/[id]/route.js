@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
+import axios from 'axios';
 import mongoose from 'mongoose';
+import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Video from '@/models/Video';
 import Comment from '@/models/Comment';
 import { buildVideoAggregation } from '@/lib/videoUtils';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import axios from 'axios';
+import redis from '@/lib/redis';
 
 const AURA_API_BASE_URL = "https://api.aurahub.fun";
 
@@ -17,6 +18,26 @@ export async function GET(request, { params }) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: "Invalid video ID format." }, { status: 400 });
     }
+
+    const cacheKey = `video:${id}`;
+
+    const cachedVideo = await redis.get(cacheKey);
+    if (cachedVideo) {
+      console.log(`CACHE HIT for key: ${cacheKey}`);
+      const videoObject = cachedVideo;
+      const session = await getServerSession(authOptions);
+      const user = session?.user;
+      if (user && videoObject.likes) {
+        videoObject.isLiked = videoObject.likes.map(likeId => likeId.toString()).includes(user.id);
+      } else {
+        videoObject.isLiked = false;
+      }
+      return NextResponse.json(videoObject);
+    }
+    
+    console.log(`CACHE MISS for key: ${cacheKey}`);
+
+    await dbConnect();
 
     const video = await Video.findById(id);
     if (!video) {
@@ -34,6 +55,8 @@ export async function GET(request, { params }) {
     const aggregation = buildVideoAggregation({ _id: videoId });
     const results = await Video.aggregate(aggregation);
     const videoObject = results[0];
+
+    await redis.set(cacheKey, JSON.stringify(videoObject), { ex: 3600 });
 
     if (user && videoObject.likes) {
       videoObject.isLiked = videoObject.likes.map((likeId) => likeId.toString()).includes(user.id);
