@@ -182,8 +182,7 @@ const DashboardClient = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="w-24 h-14 flex-shrink-0">
                                                     <VideoThumbnail 
-                                                        fileId={video.fileId}
-                                                        customThumbnailUrl={video.thumbnailUrl}
+                                                        videoId={video._id}
                                                         altText={video.title}
                                                     />
                                                 </div>
