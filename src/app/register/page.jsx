@@ -31,7 +31,6 @@ const RegisterPage = () => {
   const onSubmit = async (data) => {
     try {
         let avatarUrl = null;
-        
         if (data.avatar && data.avatar.length > 0) {
             const formData = new FormData();
             formData.append('avatar', data.avatar[0]);
@@ -69,19 +68,33 @@ const RegisterPage = () => {
         <h1 className="text-3xl font-bold text-center">Create an Account</h1>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-                <label>Username</label>
-                <input {...register("username")} className={`w-full ... ${errors.username ? 'border-red-500' : 'border-gray-300'}`} />
-                {errors.username && <p className="text-xs text-red-600">{errors.username.message}</p>}
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
+                <input 
+                    id="username"
+                    {...register("username")} 
+                    className={`w-full px-3 py-2 mt-1 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.username ? 'border-red-500' : 'border-gray-300'}`} 
+                />
+                {errors.username && <p className="text-xs text-red-600 mt-1">{errors.username.message}</p>}
             </div>
             <div>
-                <label>Email</label>
-                <input type="email" {...register("email")} className={`w-full ... ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
-                {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                <input 
+                    id="email"
+                    type="email" 
+                    {...register("email")} 
+                    className={`w-full px-3 py-2 mt-1 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'}`} 
+                />
+                {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
             </div>
             <div>
-                <label>Password</label>
-                <input type="password" {...register("password")} className={`w-full ... ${errors.password ? 'border-red-500' : 'border-gray-300'}`} />
-                {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
+                <label htmlFor="password"  className="block text-sm font-medium text-gray-700">Password</label>
+                <input 
+                    id="password"
+                    type="password" 
+                    {...register("password")} 
+                    className={`w-full px-3 py-2 mt-1 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'}`} 
+                />
+                {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
             </div>
             <div>
                 <label className="block text-sm font-medium text-gray-700">Avatar (Optional)</label>
@@ -89,11 +102,16 @@ const RegisterPage = () => {
                     type="file" 
                     accept="image/*" 
                     {...register("avatar")} 
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0"
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-gray-50 hover:file:bg-gray-100"
                 />
-                {errors.avatar && <p className="text-xs text-red-600">{errors.avatar.message}</p>}
+                {errors.avatar && <p className="text-xs text-red-600 mt-1">{errors.avatar.message}</p>}
             </div>
-            <button type="submit" className="w-full ...">Sign Up</button>
+            <button 
+                type="submit" 
+                className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700"
+            >
+                Sign Up
+            </button>
         </form>
         <p className="text-sm text-center">
           Already have an account? <Link href="/login" className="font-medium text-blue-600">Sign In</Link>
