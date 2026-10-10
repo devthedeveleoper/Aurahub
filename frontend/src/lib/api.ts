@@ -10,13 +10,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 		(headers as Record<string, string>)['Content-Type'] = 'application/json';
 	}
 
-	let finalEndpoint = endpoint;
-	if (typeof window !== 'undefined' && localStorage.getItem('showAdultContent') === 'true') {
-		const separator = finalEndpoint.includes('?') ? '&' : '?';
-		finalEndpoint += `${separator}adult=true`;
-	}
-
-	const res = await fetch(`${API_URL}${finalEndpoint}`, {
+	const res = await fetch(`${API_URL}${endpoint}`, {
 		...options,
 		headers,
 		credentials: 'include'

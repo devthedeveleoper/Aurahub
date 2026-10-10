@@ -168,6 +168,7 @@ func (s *Server) ListVideosHandler(c *fiber.Ctx) error {
 			"thumbnailUrl": v.ThumbnailUrl.String,
 			"views":        v.Views.Int32,
 			"isShort":      v.IsShort.Bool,
+			"isAdult":      v.IsAdult.Bool,
 			"visibility":   v.Visibility.VideoVisibility,
 			"category":     v.Category.String,
 			"createdAt":    v.CreatedAt.Time,
@@ -278,7 +279,7 @@ func (s *Server) DeleteVideoHandler(c *fiber.Ctx) error {
 		if err := s.Cache.Del(context.Background(), keysToDel...).Err(); err != nil {
 			log.Printf("Cache invalidation failed after deleting video %s: %v", idStr, err)
 		}
-		s.invalidateFeedCache(context.Background())
+		s.InvalidateFeedCache(context.Background())
 	}
 
 	videoIDStr := formatUUID(videoId)
@@ -293,22 +294,24 @@ func (s *Server) DeleteVideoHandler(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Video deleted successfully"})
 }
 
-// invalidateFeedCache clears cached public feeds and search entries on upload or deletion
-func (s *Server) invalidateFeedCache(ctx context.Context) {
+// InvalidateFeedCache clears cached public feeds and search entries on upload, deletion or startup
+func (s *Server) InvalidateFeedCache(ctx context.Context) {
 	if s.Cache == nil {
 		return
 	}
-	iter := s.Cache.Scan(ctx, 0, "feed:videos:*", 100).Iterator()
-	var keys []string
-	for iter.Next(ctx) {
-		keys = append(keys, iter.Val())
-		if len(keys) >= 100 {
-			_ = s.Cache.Del(ctx, keys...).Err()
-			keys = keys[:0]
+	for _, pattern := range []string{"feed:videos:*", "search:*", "search:auto:*", "autocomplete:*"} {
+		iter := s.Cache.Scan(ctx, 0, pattern, 100).Iterator()
+		var keys []string
+		for iter.Next(ctx) {
+			keys = append(keys, iter.Val())
+			if len(keys) >= 100 {
+				_ = s.Cache.Del(ctx, keys...).Err()
+				keys = keys[:0]
+			}
 		}
-	}
-	if len(keys) > 0 {
-		_ = s.Cache.Del(ctx, keys...).Err()
+		if len(keys) > 0 {
+			_ = s.Cache.Del(ctx, keys...).Err()
+		}
 	}
 }
 
@@ -345,6 +348,7 @@ func (s *Server) SearchVideosHandler(c *fiber.Ctx) error {
 					"thumbnailUrl": v.ThumbnailUrl,
 					"views":        v.Views,
 					"isShort":      v.IsShort,
+					"isAdult":      v.IsAdult,
 					"category":     v.Category,
 					"createdAt":    v.CreatedAt,
 				})
@@ -371,6 +375,7 @@ func (s *Server) SearchVideosHandler(c *fiber.Ctx) error {
 				"thumbnailUrl": v.ThumbnailUrl.String,
 				"views":        v.Views.Int32,
 				"isShort":      v.IsShort.Bool,
+				"isAdult":      v.IsAdult.Bool,
 				"category":     v.Category.String,
 				"createdAt":    v.CreatedAt.Time,
 			})

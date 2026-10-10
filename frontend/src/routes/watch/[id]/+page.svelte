@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { fetchApi } from '#lib/api';
 	import { userState } from '#lib/user.svelte';
-	import { ThumbsUp, Share2, MessageSquare, Play, ListPlus, Loader2, Trash2 } from 'lucide-svelte';
+	import { consentState, initAdultConsent, grantAdultConsent } from '#lib/consent.svelte';
+	import { ThumbsUp, Share2, MessageSquare, Play, ListPlus, Loader2, Trash2, ShieldAlert } from 'lucide-svelte';
 	import VideoThumbnail from '#lib/components/VideoThumbnail.svelte';
 	import WatchLaterButton from '#lib/components/WatchLaterButton.svelte';
 	import SaveToPlaylistModal from '#lib/components/SaveToPlaylistModal.svelte';
@@ -24,6 +26,10 @@
 	let playlistId = $derived(page.url.searchParams.get('list'));
 	let isSaveModalOpen = $state(false);
 	let newCommentText = $state('');
+
+	onMount(() => {
+		initAdultConsent();
+	});
 
 	// Queries
 	const videoQuery = createQuery(
@@ -282,20 +288,57 @@
 		{:else if videoQuery.data}
 			<!-- Video Player -->
 			<div
-				class="relative aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-black shadow-lg"
+				class="relative aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-black shadow-lg flex items-center justify-center"
 			>
-				<iframe
-					src={`https://streamtape.com/e/${videoQuery.data.fileId}`}
-					class="h-full w-full border-0"
-					allowfullscreen
-					allow="autoplay"
-					title="Video Player"
-				></iframe>
+				{#if videoQuery.data.isAdult && !consentState.hasConsent}
+					<div class="flex flex-col items-center justify-center p-6 text-center max-w-md">
+						<div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500 border border-amber-500/30">
+							<ShieldAlert class="h-8 w-8" />
+						</div>
+						<div class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-3 py-1 text-xs font-semibold text-amber-400 mb-2">
+							18+ Age Restricted Video
+						</div>
+						<h2 class="text-xl font-bold text-white mb-2">Mature Content Warning</h2>
+						<p class="text-xs text-zinc-300 mb-6 leading-relaxed">
+							This video contains adult and sexually explicit material. You must confirm that you are at least 18 years old to watch this content.
+						</p>
+						<div class="flex flex-col sm:flex-row gap-3 w-full justify-center">
+							<Button
+								variant="outline"
+								size="sm"
+								class="rounded-full border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
+								onclick={() => goto('/')}
+							>
+								Return to Safety
+							</Button>
+							<Button
+								size="sm"
+								class="rounded-full bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+								onclick={() => grantAdultConsent()}
+							>
+								I am 18+ — Watch Video
+							</Button>
+						</div>
+					</div>
+				{:else}
+					<iframe
+						src={`https://streamtape.com/e/${videoQuery.data.fileId}`}
+						class="h-full w-full border-0"
+						allowfullscreen
+						allow="autoplay"
+						title="Video Player"
+					></iframe>
+				{/if}
 			</div>
 
 			<!-- Video Info -->
 			<div class="space-y-4">
-				<h1 class="text-2xl font-bold tracking-tight">{videoQuery.data.title}</h1>
+				<div class="flex items-start gap-2">
+					<h1 class="text-2xl font-bold tracking-tight">{videoQuery.data.title}</h1>
+					{#if videoQuery.data.isAdult}
+						<span class="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-500 shrink-0 mt-1">18+</span>
+					{/if}
+				</div>
 
 				<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
 					<div class="flex items-center gap-4">

@@ -58,12 +58,12 @@ func (s *Server) SuggestionsHandler(c *fiber.Ctx) error {
 		if err == nil {
 			excludeID = current.ID
 			var queryErr error
-			showAdult := c.Query("adult") == "true"
-			videos, queryErr = s.Repository.ListSuggestedVideos(ctx, current.ID, current.Category.String, []string(current.Tags), showAdult, int32(limit), offset)
+			isCurrentAdult := current.IsAdult.Valid && current.IsAdult.Bool
+			videos, queryErr = s.Repository.ListSuggestedVideos(ctx, current.ID, current.Category.String, []string(current.Tags), isCurrentAdult, int32(limit), offset)
 			if queryErr != nil {
 				return c.Status(500).JSON(fiber.Map{"message": "Failed to fetch suggestions"})
 			}
-			total, queryErr = s.Repository.CountSuggestedVideos(ctx, current.ID, showAdult)
+			total, queryErr = s.Repository.CountSuggestedVideos(ctx, current.ID, isCurrentAdult)
 			if queryErr != nil {
 				return c.Status(500).JSON(fiber.Map{"message": "Failed to count suggestions"})
 			}
@@ -103,6 +103,7 @@ func toVideoSummaries(videos []db.Video) []fiber.Map {
 			"category":     video.Category.String,
 			"views":        video.Views.Int32,
 			"isShort":      video.IsShort.Bool,
+			"isAdult":      video.IsAdult.Bool,
 			"createdAt":    video.CreatedAt.Time,
 		})
 	}

@@ -17,10 +17,12 @@
 		Smartphone,
 		Video,
 		BarChart,
-		Bell
+		Bell,
+		ShieldAlert
 	} from 'lucide-svelte';
 	import { fetchApi } from '#lib/api';
 	import { userState, setUser, clearUser } from '#lib/user.svelte';
+	import { initAdultConsent } from '#lib/consent.svelte';
 	import NotificationBell from '#lib/components/NotificationBell.svelte';
 	import SearchAutocomplete from '#lib/components/SearchAutocomplete.svelte';
 
@@ -52,6 +54,8 @@
 			isDark = false;
 			document.documentElement.classList.remove('dark');
 		}
+
+		initAdultConsent();
 
 		try {
 			const data = await fetchApi('/auth/me');
@@ -290,6 +294,20 @@
 						class="hover:bg-muted flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
 						><BarChart class="h-5 w-5" /> Analytics</a
 					>
+
+					<div class="my-4 border-t"></div>
+					<h3 class="text-muted-foreground mb-2 px-3 text-xs font-semibold uppercase tracking-wider">Mature Content</h3>
+					<a
+						href="/adult"
+						onclick={() => (isSidebarOpen = false)}
+						class="hover:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-between rounded-lg px-3 py-2 transition-colors"
+					>
+						<span class="flex items-center gap-3">
+							<ShieldAlert class="h-5 w-5" />
+							<span>18+ Adult Hub</span>
+						</span>
+						<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">18+</span>
+					</a>
 				</nav>
 			</aside>
 

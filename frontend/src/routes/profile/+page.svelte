@@ -8,6 +8,7 @@
 	import { Textarea } from '#lib/components/ui/textarea';
 	import { Label } from '#lib/components/ui/label';
 	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+	import { grantAdultConsent, revokeAdultConsent } from '#lib/consent.svelte';
 
 	const queryClient = useQueryClient();
 
@@ -92,7 +93,12 @@
 					setUser({ ...userState.user, ...res, bio, showAdultContent, avatar, banner });
 				}
 				if (typeof window !== 'undefined') {
-					localStorage.setItem('showAdultContent', showAdultContent ? 'true' : 'false');
+					if (showAdultContent) {
+						grantAdultConsent();
+					} else {
+						revokeAdultConsent();
+					}
+					localStorage.removeItem('showAdultContent');
 				}
 				message = { type: 'success', text: 'Profile updated successfully!' };
 			},
@@ -317,9 +323,9 @@
 									class="border-input focus:ring-ring h-4 w-4 rounded bg-background text-primary ring-offset-background focus:ring-2 focus:ring-offset-2"
 								/>
 								<div class="space-y-1">
-									<span class="text-sm leading-none font-medium">Show Adult Content</span>
+									<span class="text-sm leading-none font-medium">Enable 18+ Adult Content Access</span>
 									<p class="text-muted-foreground text-xs">
-										Allow content marked as adult to appear in feeds and search results.
+										Allow access to the dedicated 18+ Adult Hub and age-restricted content. General feeds will remain strictly non-adult.
 									</p>
 								</div>
 							</label>

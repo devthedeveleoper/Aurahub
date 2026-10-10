@@ -250,7 +250,11 @@ func (c *Client) SearchVideos(ctx context.Context, q string, category string, sh
 	filterClauses := []map[string]any{
 		{"term": map[string]any{"visibility": "public"}},
 	}
-	if !showAdult {
+	if showAdult {
+		filterClauses = append(filterClauses, map[string]any{
+			"term": map[string]any{"isAdult": true},
+		})
+	} else {
 		filterClauses = append(filterClauses, map[string]any{
 			"term": map[string]any{"isAdult": false},
 		})
@@ -378,7 +382,11 @@ func (c *Client) Autocomplete(ctx context.Context, prefix string, showAdult bool
 	filterClauses := []map[string]any{
 		{"term": map[string]any{"visibility": "public"}},
 	}
-	if !showAdult {
+	if showAdult {
+		filterClauses = append(filterClauses, map[string]any{
+			"term": map[string]any{"isAdult": true},
+		})
+	} else {
 		filterClauses = append(filterClauses, map[string]any{
 			"term": map[string]any{"isAdult": false},
 		})

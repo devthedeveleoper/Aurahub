@@ -283,7 +283,7 @@ func (s *Server) CreateRecordHandler(c *fiber.Ctx) error {
 	}
 
 	if s.Cache != nil {
-		s.invalidateFeedCache(c.UserContext())
+		s.InvalidateFeedCache(c.UserContext())
 	}
 
 	if playlistIDValue != "" {

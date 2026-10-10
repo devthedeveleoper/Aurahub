@@ -162,6 +162,7 @@ func main() {
 	// Pass the PostgreSQL query layer, Valkey client, Kafka producer, and OpenSearch client to handlers.
 	server := api.NewServer(repository, rdb, kafkaProducer, osClient)
 	server.SetupRoutes(app)
+	server.InvalidateFeedCache(context.Background())
 
 	// Graceful shutdown listener on SIGINT / SIGTERM
 	shutdownChan := make(chan os.Signal, 1)

@@ -107,7 +107,9 @@ func (q *Repository) GetCreatorVideoCategories(ctx context.Context, uploaderID p
 func (q *Repository) ListPublicVideos(ctx context.Context, category string, shortFilter pgtype.Bool, showAdult bool, sort string, limit, offset int32) ([]Video, error) {
 	query := q.orm.WithContext(ctx).Model(&Video{}).
 		Where("visibility = ?", VideoVisibilityPublic)
-	if !showAdult {
+	if showAdult {
+		query = query.Where("is_adult = ?", true)
+	} else {
 		query = query.Where("is_adult = ?", false)
 	}
 	if category != "" {
@@ -148,7 +150,9 @@ func (q *Repository) ListCreatorVideos(ctx context.Context, uploaderID pgtype.UU
 
 func (q *Repository) CountPublicVideos(ctx context.Context, category string, shortFilter pgtype.Bool, showAdult bool) (int64, error) {
 	query := q.orm.WithContext(ctx).Model(&Video{}).Where("visibility = ?", VideoVisibilityPublic)
-	if !showAdult {
+	if showAdult {
+		query = query.Where("is_adult = ?", true)
+	} else {
 		query = query.Where("is_adult = ?", false)
 	}
 	if category != "" {
@@ -167,7 +171,9 @@ func (q *Repository) ListSuggestedVideos(ctx context.Context, excludeID pgtype.U
 	var videos []Video
 	query := q.orm.WithContext(ctx).Model(&Video{}).
 		Where("videos.visibility = ? AND videos.id <> ? AND videos.is_short = ?", VideoVisibilityPublic, excludeID, false)
-	if !showAdult {
+	if showAdult {
+		query = query.Where("videos.is_adult = ?", true)
+	} else {
 		query = query.Where("videos.is_adult = ?", false)
 	}
 	err := query.Order(clause.Expr{SQL: score, Vars: []interface{}{category, category, tags}}).
@@ -180,7 +186,9 @@ func (q *Repository) CountSuggestedVideos(ctx context.Context, excludeID pgtype.
 	var count int64
 	query := q.orm.WithContext(ctx).Model(&Video{}).
 		Where("visibility = ? AND id <> ? AND is_short = ?", VideoVisibilityPublic, excludeID, false)
-	if !showAdult {
+	if showAdult {
+		query = query.Where("is_adult = ?", true)
+	} else {
 		query = query.Where("is_adult = ?", false)
 	}
 	err := query.Count(&count).Error
@@ -193,7 +201,9 @@ func (q *Repository) SearchPublicVideos(ctx context.Context, query string, showA
 		Where("videos.is_short = ?", false).
 		Where("videos.streamtape_status IS DISTINCT FROM ?", StreamtapeStatusDead)
 	
-	if !showAdult {
+	if showAdult {
+		queryBuilder = queryBuilder.Where("videos.is_adult = ?", true)
+	} else {
 		queryBuilder = queryBuilder.Where("videos.is_adult = ?", false)
 	}
 
@@ -228,7 +238,9 @@ func (q *Repository) SearchAutocompleteVideos(ctx context.Context, query string,
 		Where("visibility = ? AND is_short = ? AND (title ILIKE ? OR word_similarity(?, title) > 0.35 OR EXISTS (SELECT 1 FROM unnest(tags) AS tag WHERE tag ILIKE ?))",
 			VideoVisibilityPublic, false, "%"+query+"%", query, "%"+query+"%")
 	
-	if !showAdult {
+	if showAdult {
+		queryBuilder = queryBuilder.Where("is_adult = ?", true)
+	} else {
 		queryBuilder = queryBuilder.Where("is_adult = ?", false)
 	}
 	

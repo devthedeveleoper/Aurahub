@@ -6,8 +6,8 @@ export const userState = $state({
 export function setUser(user: any) {
 	userState.user = user;
 	userState.isLoaded = true;
-	if (typeof window !== 'undefined' && user && typeof user.showAdultContent === 'boolean') {
-		localStorage.setItem('showAdultContent', user.showAdultContent ? 'true' : 'false');
+	if (typeof window !== 'undefined') {
+		localStorage.removeItem('showAdultContent');
 	}
 }
 

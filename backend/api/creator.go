@@ -343,7 +343,7 @@ func (s *Server) BulkDeleteVideosHandler(c *fiber.Ctx) error {
 	}
 
 	if s.Cache != nil {
-		s.invalidateFeedCache(context.Background())
+		s.InvalidateFeedCache(context.Background())
 	}
 
 	return c.JSON(fiber.Map{"message": "Videos deleted successfully from storage and database"})

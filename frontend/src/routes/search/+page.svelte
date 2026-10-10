@@ -8,6 +8,9 @@
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 	import { Skeleton } from '#lib/components/ui/skeleton';
 	import { Button } from '#lib/components/ui/button';
+	import { consentState, initAdultConsent } from '#lib/consent.svelte';
+	import AdultConsentModal from '#lib/components/AdultConsentModal.svelte';
+	import { onMount } from 'svelte';
 
 	const queryClient = useQueryClient();
 
@@ -15,18 +18,28 @@
 	let adultParam = $derived(page.url.searchParams.get('adult'));
 
 	let includeAdult = $state(false);
+	let isConsentModalOpen = $state(false);
+
+	onMount(() => {
+		initAdultConsent();
+	});
 
 	$effect(() => {
 		if (typeof window !== 'undefined') {
-			if (adultParam !== null) {
-				includeAdult = adultParam === 'true';
+			if (adultParam === 'true' && consentState.hasConsent) {
+				includeAdult = true;
 			} else {
-				includeAdult = localStorage.getItem('showAdultContent') === 'true';
+				includeAdult = false;
 			}
 		}
 	});
 
 	function toggleAdult(enable: boolean) {
+		if (enable && !consentState.hasConsent) {
+			isConsentModalOpen = true;
+			return;
+		}
+
 		includeAdult = enable;
 		const url = new URL(page.url.href);
 		if (enable) {
@@ -35,6 +48,10 @@
 			url.searchParams.delete('adult');
 		}
 		goto(url.toString(), { replaceState: true });
+	}
+
+	function handleConsentGranted() {
+		toggleAdult(true);
 	}
 
 	const searchQuery = createQuery(
@@ -225,4 +242,10 @@
 			{/each}
 		</div>
 	{/if}
+
+	<AdultConsentModal
+		bind:isOpen={isConsentModalOpen}
+		onConsent={handleConsentGranted}
+		onCancel={() => (isConsentModalOpen = false)}
+	/>
 </div>
